@@ -1,0 +1,120 @@
+---
+title: "iifl_test"
+author: "Ashok Kumar"
+date: "August 23, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(caret)
+behavior = read.csv('behavior.csv')
+demog = read.csv('demog.csv')
+customer = merge(behavior, demog, by = 'Customer_ID')
+```
+
+## 1. Quality Assesment
+```{r}
+sapply(demog, function(x) sum(is.na(x)))
+sapply(behavior, function(x) sum(is.na(x)))
+```
+
+```{r}
+boxplot.stats(customer)
+```
+
+
+```{r}
+str(customer)
+```
+
+## 2. Data Report
+- A. For Numerical columns
+```{r}
+num = sapply(customer, is.numeric)
+get_num_summ = function(col){
+  vec = c('Minimum' = min(col, na.rm = T),'Maximum' = max(col, na.rm = T), 'Mean' = mean(col, na.rm = T), 
+          'Median' = median(col, na.rm = T), 'Mode' = mode(col), 
+          '% Missing' = sum(is.na(col))*100/length(col),
+          '% Outliers' = length(boxplot.stats(col)$out)*100/length(col))
+}
+sapply(customer[,num], get_num_summ) %>% as.data.frame()
+```
+
+- B. For Categorical columns
+```{r}
+fac = sapply(c, is.factor)
+get_cat_summ = function(col){
+  freq = names(sort(table(col[col != '']), decreasing = T))[1]
+  vec = c('Distinct' = length(unique(col)),'Frequent category' = freq, 
+          'Frequency of Frequent category' = sum(col == freq),
+          '% Missing' = sum(is.na(col) | col == '')*100/length(col))
+}
+sapply(customer[,fac], get_cat_summ) %>% as.data.frame()
+```
+
+
+## 3. Missing value and outlier treatment
+- Missing value treatment
+```{r}
+## as seen before: credit limit column has 92% of missing values - It's better to credit limit column
+customer$Credit_Limit = NULL
+
+```
+
+
+
+## 4. correcting error in data entry 
+```{r}
+## some observations has -ve Revenue
+sum(na.omit(customer$Revenue) < 0)      ## 20
+## converting negative revenue to positive
+customer$Revenue[customer$Revenue<0 & !is.na(customer$Revenue)] = 
+  -1* customer$Revenue[customer$Revenue<0 & !is.na(customer$Revenue)]
+```
+
+## 5. Data Assesment report
+```{r}
+
+```
+
+
+
+## 6.
+- Try clustering all the customers and find those 2% of customers who are most likely to respond 
+```{r}
+dummy = dummyVars(~.,data = customer[,num])
+customer_num = data.frame(predict(dummy, newdata = customer[,num]))
+data_norm = scale(customer_num)
+model_kmeans = kmeans(na.omit(data_norm), centers = 10)
+table(model_kmeans$cluster)/length(model_kmeans$cluster)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
